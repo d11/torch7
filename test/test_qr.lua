@@ -84,10 +84,19 @@ end
 -- the given expected `q` and `r`.
 local function checkQRWithExpected(testOpts, a, expected_q, expected_r)
   local qrFunc = testOpts.qr
+  -- Since the QR decomposition is unique only up to the signs of the rows of
+  -- R, we must ensure these are positive before doing the comparison.
+  local function canonicalize(q, r)
+      local d = r:diag():sign():diag()
+      return q * d, d * r
+  end
   local q, r = qrFunc(a)
-  tester:assertTensorEq(q, expected_q, testOpts.precision,
+  local q_canon, r_canon = canonicalize(q, r)
+  local expected_q_canon, expected_r_canon
+      = canonicalize(expected_q, expected_r)
+  tester:assertTensorEq(q_canon, expected_q_canon, testOpts.precision,
                         "Q did not match expected")
-  tester:assertTensorEq(r, expected_r, testOpts.precision,
+  tester:assertTensorEq(r_canon, expected_r_canon, testOpts.precision,
                         "R did not match expected")
   checkQR(testOpts, a, q, r)
 end
